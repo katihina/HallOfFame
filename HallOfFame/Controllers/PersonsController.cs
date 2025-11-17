@@ -28,7 +28,7 @@ namespace HallOfFame.Controllers
         [HttpGet("{id:long}")]
         [ProducesResponseType(StatusCodes.Status200OK)] 
         [ProducesResponseType(StatusCodes.Status404NotFound)] 
-        public async Task<ActionResult<Person>> Get(long id)
+        public async Task<ActionResult<Person>> GetById(long id)
         {
             var person = await _personService.GetByIdAsync(id);
 
@@ -70,6 +70,11 @@ namespace HallOfFame.Controllers
             {
                 return BadRequest("Id должен быть пустым в теле PUT-запроса."); 
             }
+            
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
 
             var updatedPerson = await _personService.UpdateAsync(id, person);
 
@@ -93,7 +98,7 @@ namespace HallOfFame.Controllers
                 return NotFound(); 
             }
 
-            return Ok(); 
+            return NoContent();
         }
     }
 }

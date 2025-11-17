@@ -12,6 +12,7 @@ builder.Services.AddControllers()
     });
 
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+
 if (string.IsNullOrEmpty(connectionString))
 {
     Console.WriteLine("Ошибка: Строка подключения 'DefaultConnection' не найдена в конфигурации.");

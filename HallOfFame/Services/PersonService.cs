@@ -36,33 +36,51 @@ namespace HallOfFame.Services
             return person;
         }
         
-        public async Task<Person?> UpdateAsync(long id, Person updatedPersonData)
+        public async Task<Person?> UpdateAsync(long id, Person updatedData)
         {
             var existingPerson = await _context.Persons
                 .Include(p => p.Skills)
                 .FirstOrDefaultAsync(p => p.Id == id);
 
             if (existingPerson == null)
-            {
-                return null; 
-            }
-
-            existingPerson.Name = updatedPersonData.Name;
-            existingPerson.DisplayName = updatedPersonData.DisplayName;
-
-            _context.Skills.RemoveRange(existingPerson.Skills);
-
-            foreach (var skill in updatedPersonData.Skills)
-            {
-                skill.PersonId = id; 
-            }
-
-            existingPerson.Skills = updatedPersonData.Skills;
+                return null;
             
+            existingPerson.Name = updatedData.Name;
+            existingPerson.DisplayName = updatedData.DisplayName;
+            
+            var newSkills = updatedData.Skills ?? new List<Skill>();
+            var oldSkills = existingPerson.Skills;
+            
+            var skillsToRemove = oldSkills
+                .Where(os => newSkills.All(ns => ns.Name != os.Name))
+                .ToList();
+
+            foreach (var skill in skillsToRemove)
+            {
+                _context.Skills.Remove(skill);
+            }
+            
+            foreach (var newSkill in newSkills)
+            {
+                var existingSkill = oldSkills
+                    .FirstOrDefault(os => os.Name == newSkill.Name);
+
+                if (existingSkill != null)
+                {
+                    existingSkill.Level = newSkill.Level;
+                }
+                else
+                {
+                    newSkill.PersonId = id;
+                    _context.Skills.Add(newSkill);
+                }
+            }
+
             await _context.SaveChangesAsync();
-            
+
             return existingPerson;
         }
+
         
         public async Task<bool> DeleteAsync(long id)
         {
