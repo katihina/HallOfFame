@@ -1,22 +1,18 @@
 ﻿using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
 
-namespace HallOfFame.Models
+namespace HallOfFame.Dtos
 {
-    public class Person
+    public class PersonCreateDto
     {
-        [Key]
-        [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
-        public long Id { get; set; }
-        
         [Required]
         [StringLength(200)]
         public string Name { get; set; } = string.Empty;
-
+        
         [Required]
         [StringLength(200)]
         public string DisplayName { get; set; } = string.Empty;
         
-        public List<Skill> Skills { get; set; } = new();
+        [Required]
+        public List<SkillDto> Skills { get; set; } = new();
     }
 }

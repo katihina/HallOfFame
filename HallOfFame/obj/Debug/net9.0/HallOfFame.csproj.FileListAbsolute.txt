@@ -136,3 +136,4 @@ C:\Users\MI\RiderProjects\HallOfFame\HallOfFame\bin\Debug\net9.0\Microsoft.AspNe
 C:\Users\MI\RiderProjects\HallOfFame\HallOfFame\bin\Debug\net9.0\Microsoft.AspNetCore.Mvc.NewtonsoftJson.dll
 C:\Users\MI\RiderProjects\HallOfFame\HallOfFame\bin\Debug\net9.0\Newtonsoft.Json.dll
 C:\Users\MI\RiderProjects\HallOfFame\HallOfFame\bin\Debug\net9.0\Newtonsoft.Json.Bson.dll
+C:\Users\MI\RiderProjects\HallOfFame\HallOfFame\obj\Debug\net9.0\HallOfFame.sourcelink.json

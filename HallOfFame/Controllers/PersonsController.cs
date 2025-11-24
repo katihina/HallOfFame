@@ -1,104 +1,115 @@
-﻿using HallOfFame.Models;
-using HallOfFame.Services;
+﻿using AutoMapper;
+using HallOfFame.Data;
+using HallOfFame.Dtos;
+using HallOfFame.Models;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace HallOfFame.Controllers
 {
-    [Route("api/v1/[controller]")] 
     [ApiController]
+    [Route("api/v1/persons")]
     public class PersonsController : ControllerBase
     {
-        private readonly IPersonService _personService;
-        
-        public PersonsController(IPersonService personService)
+        private readonly HallOfFameDbContext _context;
+        private readonly IMapper _mapper;
+
+        public PersonsController(HallOfFameDbContext context, IMapper mapper)
         {
-            _personService = personService;
+            _context = context;
+            _mapper = mapper;
         }
         
-        [HttpGet]
-        [ProducesResponseType(StatusCodes.Status200OK)] 
-        [ProducesResponseType(StatusCodes.Status500InternalServerError)] 
-        public async Task<ActionResult<IEnumerable<Person>>> Get()
+    // GET api/v1/persons
+    [HttpGet]
+    public async Task<ActionResult<List<PersonDto>>> GetAll()
+    {
+        var persons = await _context.Persons.Include(p => p.Skills).ToListAsync();
+        var dtos = _mapper.Map<List<PersonDto>>(persons);
+        return Ok(dtos);
+    }
+    
+    // GET api/v1/persons/{id}
+    [HttpGet("{id:long}")]
+    public async Task<ActionResult<PersonDto>> Get(long id)
+    {
+        var person = await _context.Persons.Include(p => p.Skills).FirstOrDefaultAsync(p => p.Id == id);
+        if (person == null)
+            return NotFound();
+        
+        return Ok(_mapper.Map<PersonDto>(person));
+    }
+    
+    // POST api/v1/persons
+    [HttpPost]
+    public async Task<ActionResult<PersonDto>> Create([FromBody] PersonCreateDto dto)
+    {
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
+
+
+        var person = _mapper.Map<Person>(dto);
+
+    foreach (var s in person.Skills)
+    {
+        s.Id = 0; 
+    }
+    
+    _context.Persons.Add(person);
+    await _context.SaveChangesAsync();
+    var resultDto = _mapper.Map<PersonDto>(person);
+    return Ok(resultDto);
+    }
+
+    // PUT api/v1/persons/{id}
+    [HttpPut("{id:long}")]
+    public async Task<ActionResult<PersonDto>> Update(long id, [FromBody] PersonCreateDto dto)
+    {
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
+
+        var person = await _context.Persons.Include(p => p.Skills).FirstOrDefaultAsync(p => p.Id == id);
+        if (person == null)
+            return NotFound();
+        
+        person.Name = dto.Name;
+        person.DisplayName = dto.DisplayName;
+        
+        var incoming = dto.Skills;
+        
+        var toRemove = person.Skills.Where(s => !incoming.Any(i => string.Equals(i.Name, s.Name, StringComparison.OrdinalIgnoreCase))).ToList();
+        _context.Skills.RemoveRange(toRemove);
+        
+        foreach (var skillDto in incoming)
         {
-            var persons = await _personService.GetAllAsync();
-            return Ok(persons);
-        }
-
-
-        [HttpGet("{id:long}")]
-        [ProducesResponseType(StatusCodes.Status200OK)] 
-        [ProducesResponseType(StatusCodes.Status404NotFound)] 
-        public async Task<ActionResult<Person>> GetById(long id)
-        {
-            var person = await _personService.GetByIdAsync(id);
-
-            if (person == null)
+            var existing = person.Skills.FirstOrDefault(s => string.Equals(s.Name, skillDto.Name, StringComparison.OrdinalIgnoreCase));
+            if (existing != null)
             {
-                return NotFound(); 
+                existing.Level = skillDto.Level;
             }
-
-            return Ok(person);
+            else
+            {
+                var newSkill = new Skill { Name = skillDto.Name, Level = skillDto.Level, Person = person };
+                person.Skills.Add(newSkill);
+            }
         }
         
-        [HttpPost]
-        [ProducesResponseType(StatusCodes.Status201Created)] 
-        [ProducesResponseType(StatusCodes.Status400BadRequest)] 
-        public async Task<ActionResult<Person>> Post([FromBody] Person person)
-        {
-            if (person.Id != 0)
-            {
-                return BadRequest("Id должен быть пустым при создании."); 
-            }
-            
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ModelState); 
-            }
+        await _context.SaveChangesAsync();
+        return Ok(_mapper.Map<PersonDto>(person));
+    }
 
-            var createdPerson = await _personService.CreateAsync(person);
-            
-            return CreatedAtAction(nameof(Get), new { id = createdPerson.Id }, createdPerson);
-        }
 
-        [HttpPut("{id:long}")]
-        [ProducesResponseType(StatusCodes.Status200OK)] 
-        [ProducesResponseType(StatusCodes.Status400BadRequest)] 
-        [ProducesResponseType(StatusCodes.Status404NotFound)] 
-        public async Task<ActionResult<Person>> Put(long id, [FromBody] Person person)
-        {
-            if (person.Id != 0)
-            {
-                return BadRequest("Id должен быть пустым в теле PUT-запроса."); 
-            }
-            
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ModelState);
-            }
-
-            var updatedPerson = await _personService.UpdateAsync(id, person);
-
-            if (updatedPerson == null)
-            {
-                return NotFound(); 
-            }
-
-            return Ok(updatedPerson); 
-        }
+    // DELETE api/v1/persons/{id}
+    [HttpDelete("{id:long}")]
+    public async Task<IActionResult> Delete(long id)
+    {
+        var person = await _context.Persons.Include(p => p.Skills).FirstOrDefaultAsync(p => p.Id == id);
+        if (person == null) return NotFound();
         
-        [HttpDelete("{id:long}")]
-        [ProducesResponseType(StatusCodes.Status200OK)] 
-        [ProducesResponseType(StatusCodes.Status404NotFound)] 
-        public async Task<IActionResult> Delete(long id)
-        {
-            var isDeleted = await _personService.DeleteAsync(id);
+        _context.Persons.Remove(person);
+        await _context.SaveChangesAsync();
 
-            if (!isDeleted)
-            {
-                return NotFound(); 
-            }
-
-            return NoContent();
-        }
+        return Ok();
+    }
     }
 }

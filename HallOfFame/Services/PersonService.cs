@@ -77,10 +77,9 @@ namespace HallOfFame.Services
             }
 
             await _context.SaveChangesAsync();
-
+            
             return existingPerson;
         }
-
         
         public async Task<bool> DeleteAsync(long id)
         {
@@ -92,7 +91,6 @@ namespace HallOfFame.Services
             }
 
             _context.Persons.Remove(person);
-            
             await _context.SaveChangesAsync();
             
             return true;
