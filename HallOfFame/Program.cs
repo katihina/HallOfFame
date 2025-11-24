@@ -1,35 +1,41 @@
 using HallOfFame.Data;
+using HallOfFame.Profiles;
 using HallOfFame.Services;
 using Microsoft.EntityFrameworkCore;
-using Newtonsoft.Json;
+using System.Text.Json.Serialization;
+using AutoMapper;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddControllers()
-    .AddNewtonsoftJson(options =>
-    {
-        options.SerializerSettings.ReferenceLoopHandling = ReferenceLoopHandling.Ignore;
-    });
-
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 
-if (string.IsNullOrEmpty(connectionString))
-{
-    Console.WriteLine("Ошибка: Строка подключения 'DefaultConnection' не найдена в конфигурации.");
-}
-else
-{
-    builder.Services.AddDbContext<HallOfFameDbContext>(options =>
-        options.UseNpgsql(connectionString));
-}
+builder.Services.AddDbContext<HallOfFameDbContext>(options =>
+    options.UseNpgsql(connectionString));
 
 builder.Services.AddScoped<IPersonService, PersonService>();
+
+builder.Services.AddAutoMapper(typeof(Program).Assembly);
+
+builder.Services.AddControllers()
+    .AddJsonOptions(opts =>
+    {
+        opts.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
+    });
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-
 var app = builder.Build();
+
+app.UseExceptionHandler(errorApp =>
+{
+    errorApp.Run(async context =>
+    {
+        context.Response.StatusCode = 500;
+        context.Response.ContentType = "application/json";
+        await context.Response.WriteAsJsonAsync(new { error = "Internal Server Error" });
+    });
+});
 
 if (app.Environment.IsDevelopment())
 {
@@ -37,7 +43,9 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
+app.UseHttpsRedirection();
 app.UseAuthorization();
-app.MapControllers(); 
+
+app.MapControllers();
 
 app.Run();

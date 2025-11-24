@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("HallOfFame")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+22bb4e6ba8bcec315ea00d55f04f02773cdeaa60")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+d3475400e1c5a22a3592b1ec5dec0cbbdf33be68")]
 [assembly: System.Reflection.AssemblyProductAttribute("HallOfFame")]
 [assembly: System.Reflection.AssemblyTitleAttribute("HallOfFame")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

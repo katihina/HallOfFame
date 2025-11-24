@@ -1,13 +1,13 @@
-﻿using HallOfFame.Models;
+﻿using HallOfFame.Dtos;
 
 namespace HallOfFame.Services
 {
     public interface IPersonService
     {
-        Task<List<Person>> GetAllAsync();
-        Task<Person?> GetByIdAsync(long id);
-        Task<Person> CreateAsync(Person person);
-        Task<Person?> UpdateAsync(long id, Person person);
+        Task<List<PersonDto>> GetAllAsync();
+        Task<PersonDto?> GetByIdAsync(long id);
+        Task<PersonDto> CreateAsync(PersonCreateDto dto);
+        Task<PersonDto?> UpdateAsync(long id, PersonCreateDto dto);
         Task<bool> DeleteAsync(long id);
     }
 }

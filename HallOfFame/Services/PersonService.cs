@@ -1,6 +1,7 @@
-﻿using HallOfFame.Data;
+﻿using AutoMapper;
+using HallOfFame.Data;
+using HallOfFame.Dtos;
 using HallOfFame.Models;
-using HallOfFame.Services;
 using Microsoft.EntityFrameworkCore;
 
 namespace HallOfFame.Services
@@ -8,91 +9,75 @@ namespace HallOfFame.Services
     public class PersonService : IPersonService
     {
         private readonly HallOfFameDbContext _context;
+        private readonly IMapper _mapper;
         
-        public PersonService(HallOfFameDbContext context)
+        public PersonService(HallOfFameDbContext context, IMapper mapper)
         {
             _context = context;
+            _mapper = mapper;
         }
 
-        public async Task<List<Person>> GetAllAsync()
+        public async Task<List<PersonDto>> GetAllAsync()
         {
-            return await _context.Persons
-                .Include(p => p.Skills) 
-                .ToListAsync();
+            var persons = await _context.Persons.Include(p => p.Skills).ToListAsync();
+            return _mapper.Map<List<PersonDto>>(persons);
         }
 
-        public async Task<Person?> GetByIdAsync(long id)
+        public async Task<PersonDto?> GetByIdAsync(long id)
         {
-            return await _context.Persons
-                .Include(p => p.Skills)
+            var person = await _context.Persons.Include(p => p.Skills)
                 .FirstOrDefaultAsync(p => p.Id == id);
+            if (person == null) return null;
+            
+            return _mapper.Map<PersonDto>(person);
         }
         
-        public async Task<Person> CreateAsync(Person person)
+        public async Task<PersonDto> CreateAsync(PersonCreateDto dto)
         {
+            var person = _mapper.Map<Person>(dto);
+            foreach (var skill in person.Skills)
+                skill.Id = 0;
+
             _context.Persons.Add(person);
             await _context.SaveChangesAsync();
-            
-            return person;
+
+            return _mapper.Map<PersonDto>(person);
         }
-        
-        public async Task<Person?> UpdateAsync(long id, Person updatedData)
+
+        public async Task<PersonDto?> UpdateAsync(long id, PersonCreateDto dto)
         {
-            var existingPerson = await _context.Persons
-                .Include(p => p.Skills)
+            var person = await _context.Persons.Include(p => p.Skills)
                 .FirstOrDefaultAsync(p => p.Id == id);
+            if (person == null) return null;
 
-            if (existingPerson == null)
-                return null;
-            
-            existingPerson.Name = updatedData.Name;
-            existingPerson.DisplayName = updatedData.DisplayName;
-            
-            var newSkills = updatedData.Skills ?? new List<Skill>();
-            var oldSkills = existingPerson.Skills;
-            
-            var skillsToRemove = oldSkills
-                .Where(os => newSkills.All(ns => ns.Name != os.Name))
-                .ToList();
+            person.Name = dto.Name;
+            person.DisplayName = dto.DisplayName;
 
-            foreach (var skill in skillsToRemove)
+            var toRemove = person.Skills
+                .Where(s => !dto.Skills.Any(i => i.Name.Equals(s.Name, StringComparison.OrdinalIgnoreCase))).ToList();
+            _context.Skills.RemoveRange(toRemove);
+            foreach (var skillDto in dto.Skills)
             {
-                _context.Skills.Remove(skill);
-            }
-            
-            foreach (var newSkill in newSkills)
-            {
-                var existingSkill = oldSkills
-                    .FirstOrDefault(os => os.Name == newSkill.Name);
-
-                if (existingSkill != null)
-                {
-                    existingSkill.Level = newSkill.Level;
-                }
+                var existing = person.Skills.FirstOrDefault(s => s.Name.Equals(skillDto.Name, StringComparison.OrdinalIgnoreCase));
+                if (existing != null)
+                    existing.Level = skillDto.Level;
                 else
-                {
-                    newSkill.PersonId = id;
-                    _context.Skills.Add(newSkill);
-                }
+                    person.Skills.Add(new Skill { Name = skillDto.Name, Level = skillDto.Level, Person = person });
             }
-
-            await _context.SaveChangesAsync();
             
-            return existingPerson;
+            await _context.SaveChangesAsync();
+            return _mapper.Map<PersonDto>(person);
         }
         
         public async Task<bool> DeleteAsync(long id)
         {
-            var person = await _context.Persons.FindAsync(id);
+            var person = await _context.Persons.Include(p => p.Skills)
+                .FirstOrDefaultAsync(p => p.Id == id);
+            if (person == null) return false;
 
-            if (person == null)
-            {
-                return false; 
-            }
 
             _context.Persons.Remove(person);
             await _context.SaveChangesAsync();
-            
             return true;
         }
     }
