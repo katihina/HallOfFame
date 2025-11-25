@@ -44,7 +44,6 @@ namespace HallOfFame.Controllers
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
     
-    
             var person = _mapper.Map<Person>(dto);
     
         foreach (var s in person.Skills)
